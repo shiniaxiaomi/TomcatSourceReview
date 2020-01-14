@@ -1454,9 +1454,9 @@ public class Digester extends DefaultHandler2 {
      * @exception SAXException if a parsing exception occurs
      */
     public Object parse(InputSource input) throws IOException, SAXException {
-        configure();
-        getXMLReader().parse(input);
-        return root;
+        configure();//配置日志打印
+        getXMLReader().parse(input);//获取XMLReader,并调用parse()方法进行解析server.xml配置文件
+        return root;//解析完成后,所有的配置信息都保存到了root对象中(即Server对象),并返回
     }
 
 
@@ -1777,24 +1777,24 @@ public class Digester extends DefaultHandler2 {
      * <p>
      * Provide a hook for lazy configuration of this <code>Digester</code>
      * instance.  The default implementation does nothing, but subclasses
-     * can override as needed.
+     * can override as needed.//为这个Digester实例的惰性配置提供一个钩子。默认的实现什么也不做，但是子类可以根据需要重写。
      * </p>
      *
      * <p>
-     * <strong>Note</strong> This method may be called more than once.
+     * <strong>Note</strong> This method may be called more than once.//注意，此方法可能被多次调用。
      * </p>
      */
     protected void configure() {
 
-        // Do not configure more than once
+        //不要重复配置,如果已经配置,则直接返回
         if (configured) {
             return;
         }
-
+        //获取日志打印对象
         log = LogFactory.getLog("org.apache.tomcat.util.digester.Digester");
         saxLog = LogFactory.getLog("org.apache.tomcat.util.digester.Digester.sax");
 
-        // Set the configuration flag to avoid repeating
+        //标记已配置,避免重复配置
         configured = true;
     }
 

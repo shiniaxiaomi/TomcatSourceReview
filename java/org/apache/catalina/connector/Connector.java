@@ -481,7 +481,7 @@ public class Connector extends LifecycleMBeanBase  {
      * parsing. This defaults to <code>POST</code>.
      *
      * @param methods Comma separated list of HTTP method names
-     */
+     *///设置允许体参数解析的HTTP方法列表。这是默认的POST。
     public void setParseBodyMethods(String methods) {
 
         HashSet<String> methodSet = new HashSet<>();
@@ -938,23 +938,23 @@ public class Connector extends LifecycleMBeanBase  {
     @Override
     protected void initInternal() throws LifecycleException {
 
-        super.initInternal();
+        super.initInternal();//调用父类的初始化方法
 
         if (protocolHandler == null) {
             throw new LifecycleException(
                     sm.getString("coyoteConnector.protocolHandlerInstantiationFailed"));
         }
 
-        // Initialize adapter
+        //初始化适配器
         adapter = new CoyoteAdapter(this);
         protocolHandler.setAdapter(adapter);
         if (service != null) {
             protocolHandler.setUtilityExecutor(service.getServer().getUtilityExecutor());
         }
 
-        // Make sure parseBodyMethodsSet has a default
+        // Make sure parseBodyMethodsSet has a default//确保parseBodyMethodsSet有一个默认值
         if (null == parseBodyMethodsSet) {
-            setParseBodyMethods(getParseBodyMethods());
+            setParseBodyMethods(getParseBodyMethods());//设置允许体参数解析的HTTP方法列表。默认设置为POST。
         }
 
         if (protocolHandler.isAprRequired() && !AprLifecycleListener.isInstanceCreated()) {

@@ -535,35 +535,35 @@ public class Catalina {
 
 
     /**
-     * Start a new server instance.
+     * Start a new server instance.启动一个新的服务器实例
      */
     public void load() {
-
+        //如果已经启动,则返回
         if (loaded) {
             return;
         }
-        loaded = true;
+        loaded = true;//标记已启动
 
-        long t1 = System.nanoTime();
+        long t1 = System.nanoTime();//记录刚启动时的事件
 
-        initDirs();
+        initDirs();//初始化临时目录
 
         // Before digester - it may be needed
         initNaming();
 
-        // Set configuration source
+        //设置配置源(创建CatalinaBaseConfigurationSource对象,并传入base文件夹的子文件和conf/server.xml文件)
         ConfigFileLoader.setSource(new CatalinaBaseConfigurationSource(Bootstrap.getCatalinaBaseFile(), getConfigFile()));
-        File file = configFile();
+        File file = configFile();//解析出conf/server.xml配置文件的绝对路径
 
-        // Create and execute our Digester
+        // 创建xml的解析器
         Digester digester = createStartDigester();
-
+        // 解析server.xml配置文件
         try (ConfigurationSource.Resource resource = ConfigFileLoader.getSource().getServerXml()) {
             InputStream inputStream = resource.getInputStream();
             InputSource inputSource = new InputSource(resource.getURI().toURL().toString());
             inputSource.setByteStream(inputStream);
             digester.push(this);
-            digester.parse(inputSource);
+            digester.parse(inputSource);//将conf/server.xml配置文件进行解析
         } catch (Exception e) {
             log.warn(sm.getString("catalina.configFail", file.getAbsolutePath()), e);
             if (file.exists() && !file.canRead()) {
@@ -571,17 +571,17 @@ public class Catalina {
             }
             return;
         }
-
+        //获取从server.xml配置文件中解析的根对象(Server),并设置Catalina对象,家目录的子文件和base目录的子文件
         getServer().setCatalina(this);
         getServer().setCatalinaHome(Bootstrap.getCatalinaHomeFile());
         getServer().setCatalinaBase(Bootstrap.getCatalinaBaseFile());
 
-        // Stream redirection
+        //重定向打印流
         initStreams();
 
-        // Start the new server
+        //启动新服务器
         try {
-            getServer().init();
+            getServer().init();//调用Server的init()方法
         } catch (LifecycleException e) {
             if (Boolean.getBoolean("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE")) {
                 throw new java.lang.Error(e);
@@ -742,19 +742,19 @@ public class Catalina {
 
 
     protected void initStreams() {
-        // Replace System.out and System.err with a custom PrintStream
+        //将System.out和System.err重定向到自定义的打印流
         System.setOut(new SystemLogHandler(System.out));
         System.setErr(new SystemLogHandler(System.err));
     }
 
 
     protected void initNaming() {
-        // Setting additional variables
+        // Setting additional variables//设置额外的变量
         if (!useNaming) {
             log.info(sm.getString("catalina.noNatming"));
             System.setProperty("catalina.useNaming", "false");
         } else {
-            System.setProperty("catalina.useNaming", "true");
+            System.setProperty("catalina.useNaming", "true");//将catalina.useNaming变量设置为true
             String value = "org.apache.naming";
             String oldValue =
                 System.getProperty(javax.naming.Context.URL_PKG_PREFIXES);

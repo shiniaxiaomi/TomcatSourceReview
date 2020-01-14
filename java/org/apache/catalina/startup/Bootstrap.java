@@ -51,41 +51,48 @@ public final class Bootstrap {
     private static final Log log = LogFactory.getLog(Bootstrap.class);
 
     /**
-     * Daemon object used by main.
+     * Daemon object used by main.主进程使用的守护进程对象
      */
     private static final Object daemonLock = new Object();
     private static volatile Bootstrap daemon = null;
 
-    private static final File catalinaBaseFile;
-    private static final File catalinaHomeFile;
+    private static final File catalinaBaseFile;//保存Catalina的base目录的子文件(一般base目录和家目录一直)
+    private static final File catalinaHomeFile;//保存Catalina家目录的子文件
 
     private static final Pattern PATH_PATTERN = Pattern.compile("(\".*?\")|(([^,])*)");
 
     static {
-        // Will always be non-null
+        //获取用户目录(一般就为项目的当前目录),值总是不为空
         String userDir = System.getProperty("user.dir");
 
-        // Home first
+        //====================首先,获取家目录=========================
+        //获取Catalina的家目录
         String home = System.getProperty(Globals.CATALINA_HOME_PROP);
+        //用于保存家目录下的所有子文件
         File homeFile = null;
 
+        //如果获取到家目录
         if (home != null) {
             File f = new File(home);
             try {
+                //获取家目录下的所有子文件并保存到homeFile
                 homeFile = f.getCanonicalFile();
             } catch (IOException ioe) {
                 homeFile = f.getAbsoluteFile();
             }
         }
 
+        //homeFile如果为空(即家目录没有获取到),则首先查看当前目录是否是正常Tomcat安装中的bin目录
         if (homeFile == null) {
-            // First fall-back. See if current directory is a bin directory
-            // in a normal Tomcat install
+            //查看用户目录下是否存在bootstrap.jar文件
             File bootstrapJar = new File(userDir, "bootstrap.jar");
 
+            //如果存在
             if (bootstrapJar.exists()) {
+                //在就认为家目录就是当面目录的上一级目录
                 File f = new File(userDir, "..");
                 try {
+                    //获取家目录的所有子文件
                     homeFile = f.getCanonicalFile();
                 } catch (IOException ioe) {
                     homeFile = f.getAbsoluteFile();
@@ -93,25 +100,29 @@ public final class Bootstrap {
             }
         }
 
+        //如果homeFile还是为空,则尝试第二种方法:直接诶使用当前目录当做家目录
         if (homeFile == null) {
-            // Second fall-back. Use current directory
             File f = new File(userDir);
             try {
+                //获取家目录的所有子文件
                 homeFile = f.getCanonicalFile();
             } catch (IOException ioe) {
                 homeFile = f.getAbsoluteFile();
             }
         }
 
-        catalinaHomeFile = homeFile;
+        catalinaHomeFile = homeFile;//保存家目录下子文件的引用
         System.setProperty(
                 Globals.CATALINA_HOME_PROP, catalinaHomeFile.getPath());
 
-        // Then base
+        //====================其次,获取base目录=========================
+        //获取base目录
         String base = System.getProperty(Globals.CATALINA_BASE_PROP);
         if (base == null) {
+            //如果base目录为空,则将base目录指向家目录
             catalinaBaseFile = catalinaHomeFile;
         } else {
+            //如果base目录有指定,则保存base目录下的所有子文件
             File baseFile = new File(base);
             try {
                 baseFile = baseFile.getCanonicalFile();
@@ -139,7 +150,7 @@ public final class Bootstrap {
 
     // -------------------------------------------------------- Private Methods
 
-
+    //创建commonLoader,catalinaLoader和sharedLoader
     private void initClassLoaders() {
         try {
             commonLoader = createClassLoader("common", null);
@@ -249,31 +260,31 @@ public final class Bootstrap {
      */
     public void init() throws Exception {
 
-        initClassLoaders();
+        initClassLoaders();//初始化所有的ClassLoader
 
-        Thread.currentThread().setContextClassLoader(catalinaLoader);
+        Thread.currentThread().setContextClassLoader(catalinaLoader);//设置当前线程的ClassLoader为catalinaLoader
 
         SecurityClassLoad.securityClassLoad(catalinaLoader);
 
-        // Load our startup class and call its process() method
+        // 加载Catalina启动类,并且调用其process()方法
         if (log.isDebugEnabled())
             log.debug("Loading startup class");
-        Class<?> startupClass = catalinaLoader.loadClass("org.apache.catalina.startup.Catalina");
-        Object startupInstance = startupClass.getConstructor().newInstance();
+        Class<?> startupClass = catalinaLoader.loadClass("org.apache.catalina.startup.Catalina");// 加载Catalina类
+        Object startupInstance = startupClass.getConstructor().newInstance();// 创建Catalina实例
 
         // Set the shared extensions class loader
         if (log.isDebugEnabled())
             log.debug("Setting startup class properties");
         String methodName = "setParentClassLoader";
         Class<?> paramTypes[] = new Class[1];
-        paramTypes[0] = Class.forName("java.lang.ClassLoader");
+        paramTypes[0] = Class.forName("java.lang.ClassLoader");//获取ClassLoader的类型
         Object paramValues[] = new Object[1];
-        paramValues[0] = sharedLoader;
+        paramValues[0] = sharedLoader;//将sharedLoader作为调用方法的参数
         Method method =
-            startupInstance.getClass().getMethod(methodName, paramTypes);
-        method.invoke(startupInstance, paramValues);
+            startupInstance.getClass().getMethod(methodName, paramTypes);// 通过methodName变量指定的方法和参数类型来获取Catalina类中方法(即setParentClassLoader方法)
+        method.invoke(startupInstance, paramValues);// 通过反射调用指定的方法,并传入指定参数
 
-        catalinaDaemon = startupInstance;
+        catalinaDaemon = startupInstance;// 将Catalina实例保存到catalinaDaemon变量中
     }
 
 
@@ -436,51 +447,51 @@ public final class Bootstrap {
     public static void main(String args[]) {
 
         synchronized (daemonLock) {
-            if (daemon == null) {
-                // Don't set daemon until init() has completed
-                Bootstrap bootstrap = new Bootstrap();
+            if (daemon == null) {//如果daemon为null,则创建Bootstrap对象
+                //在init()完成之前不要设置守护进程
+                Bootstrap bootstrap = new Bootstrap();//创建Bootstrap对象
                 try {
-                    bootstrap.init();
+                    bootstrap.init();//调用其init方法,初始化程序
                 } catch (Throwable t) {
                     handleThrowable(t);
                     t.printStackTrace();
                     return;
                 }
-                daemon = bootstrap;
+                daemon = bootstrap;//保存bootstrap对象引用
             } else {
                 // When running as a service the call to stop will be on a new
                 // thread so make sure the correct class loader is used to
-                // prevent a range of class not found exceptions.
+                // prevent a range of class not found exceptions.//如果daemon不为null,则将当前线程的ClassLoader设置为catalinaLoader
                 Thread.currentThread().setContextClassLoader(daemon.catalinaLoader);
             }
         }
 
         try {
-            String command = "start";
+            String command = "start";//默认的命令设置为start(所以,在启动项中不添加start参数也是可以正常启动的)
             if (args.length > 0) {
                 command = args[args.length - 1];
             }
-
+            //如果命令为startd
             if (command.equals("startd")) {
-                args[args.length - 1] = "start";
-                daemon.load(args);
-                daemon.start();
-            } else if (command.equals("stopd")) {
-                args[args.length - 1] = "stop";
-                daemon.stop();
-            } else if (command.equals("start")) {
-                daemon.setAwait(true);
-                daemon.load(args);
-                daemon.start();
+                args[args.length - 1] = "start";//则将参数设置为start
+                daemon.load(args);//通过args的不同调用不同的load()方法
+                daemon.start();//调用start()方法
+            } else if (command.equals("stopd")) {//如果命令为stopd
+                args[args.length - 1] = "stop";//则将参数设置为stop
+                daemon.stop();//调用stop()方法
+            } else if (command.equals("start")) {//如果命令是start方法
+                daemon.setAwait(true);//将当前线程设置为阻塞
+                daemon.load(args);//通过args的不同调用不同的load()方法
+                daemon.start();//调用start()方法
                 if (null == daemon.getServer()) {
-                    System.exit(1);
+                    System.exit(1);//如果获取不到Server,则退出应用
                 }
-            } else if (command.equals("stop")) {
-                daemon.stopServer(args);
-            } else if (command.equals("configtest")) {
-                daemon.load(args);
+            } else if (command.equals("stop")) {//如果命令为stop
+                daemon.stopServer(args);//通过args的不同调用匹配的stopServer方法
+            } else if (command.equals("configtest")) {//如果命令为configtest
+                daemon.load(args);//通过args的不同调用不同的load()方法
                 if (null == daemon.getServer()) {
-                    System.exit(1);
+                    System.exit(1);//如果获取不到Server,则退出应用
                 }
                 System.exit(0);
             } else {

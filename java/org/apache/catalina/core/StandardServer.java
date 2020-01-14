@@ -1004,7 +1004,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
     @Override
     protected void initInternal() throws LifecycleException {
 
-        super.initInternal();
+        super.initInternal();//调用父类的初始化方法
 
         // Initialize utility executor
         reconfigureUtilityExecutor(getUtilityThreadsInternal(utilityThreads));
@@ -1013,19 +1013,19 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         // Register global String cache
         // Note although the cache is global, if there are multiple Servers
         // present in the JVM (may happen when embedding) then the same cache
-        // will be registered under multiple names
+        // will be registered under multiple names寄存器全局字符串缓存.注意，尽管缓存是全局的，但是如果有多个服务器的话.出现在JVM中(可能在嵌入时发生)，然后是相同的缓存.将以多个名字注册
         onameStringCache = register(new StringCache(), "type=StringCache");
 
-        // Register the MBeanFactory
+        // Register the MBeanFactory//注册MBeanFactory
         MBeanFactory factory = new MBeanFactory();
-        factory.setContainer(this);
+        factory.setContainer(this);//将当前对象(StandardServer)设置为Container
         onameMBeanFactory = register(factory, "type=MBeanFactory");
 
-        // Register the naming resources
+        // Register the naming resources//初始化并注册命名资源
         globalNamingResources.init();
 
         // Populate the extension validator with JARs from common and shared
-        // class loaders
+        // class loaders//用来自公共和共享类加载器的jar填充扩展验证器
         if (getCatalina() != null) {
             ClassLoader cl = getCatalina().getParentClassLoader();
             // Walk the class loader hierarchy. Stop at the system class loader.
@@ -1052,7 +1052,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
                 cl = cl.getParent();
             }
         }
-        // Initialize our defined Services
+        // Initialize our defined Services//初始化我们定义的服务(循环调用所有定义的service的init()方法)
         for (int i = 0; i < services.length; i++) {
             services[i].init();
         }
