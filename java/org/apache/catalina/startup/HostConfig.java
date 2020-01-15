@@ -279,14 +279,14 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Process the START event for an associated Host.
+     * 为相关联的主机来处理start事件的
      *
      * @param event The lifecycle event that has occurred
      */
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
 
-        // Identify the host we are associated with
+        // 标识与我们关联的主机
         try {
             host = (Host) event.getLifecycle();
             if (host instanceof StandardHost) {
@@ -300,13 +300,13 @@ public class HostConfig implements LifecycleListener {
             return;
         }
 
-        // Process the event that has occurred
+        // 处理已发生的事件
         if (event.getType().equals(Lifecycle.PERIODIC_EVENT)) {
             check();
         } else if (event.getType().equals(Lifecycle.BEFORE_START_EVENT)) {
             beforeStart();
         } else if (event.getType().equals(Lifecycle.START_EVENT)) {
-            start();
+            start();//为这个主机处理一个“start”事件,部署对应的应用程序
         } else if (event.getType().equals(Lifecycle.STOP_EVENT)) {
             stop();
         }
@@ -414,18 +414,18 @@ public class HostConfig implements LifecycleListener {
 
     /**
      * Deploy applications for any directories or WAR files that are found
-     * in our "application root" directory.
+     * in our "application root" directory.为在“应用程序根目录”中找到的任何目录或WAR文件部署应用程序。
      */
     protected void deployApps() {
 
         File appBase = host.getAppBaseFile();
         File configBase = host.getConfigBaseFile();
         String[] filteredAppPaths = filterAppPaths(appBase.list());
-        // Deploy XML descriptors from configBase
+        //从configBase部署XML描述符
         deployDescriptors(configBase, configBase.list());
-        // Deploy WARs
+        //部署指定目录下的所有的war包
         deployWARs(appBase, filteredAppPaths);
-        // Deploy expanded folders
+        //部署扩展文件夹
         deployDirectories(appBase, filteredAppPaths);
 
     }
@@ -710,7 +710,7 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Deploy WAR files.
+     * Deploy WAR files.部署所有的war包
      * @param appBase The base path for applications
      * @param files The WARs to deploy
      */
@@ -1548,7 +1548,7 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Process a "start" event for this Host.
+     * Process a "start" event for this Host.为这个主机处理一个“start”事件。
      */
     public void start() {
 
@@ -1571,7 +1571,7 @@ public class HostConfig implements LifecycleListener {
             host.setDeployOnStartup(false);
             host.setAutoDeploy(false);
         }
-
+        //为在“应用程序根目录”中找到的任何目录或WAR文件部署应用程序。
         if (host.getDeployOnStartup())
             deployApps();
 

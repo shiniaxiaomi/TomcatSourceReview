@@ -66,19 +66,23 @@ public class ThreadLocalLeakPreventionListener extends FrameworkListener {
      * Listens for {@link LifecycleEvent} for the start of the {@link Server} to
      * initialize itself and then for after_stop events of each {@link Context}.
      */
+    //侦听服务器启动时的LifecycleEvent来初始化自身，然后侦听每个上下文的after_stop事件。
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
         try {
+            //调用父类的生命周期事件
             super.lifecycleEvent(event);
 
+            //获取事件对应的生命周期
             Lifecycle lifecycle = event.getLifecycle();
+            //如果事件类型为before_stop,并且生命周期的类型属于Server
             if (Lifecycle.BEFORE_STOP_EVENT.equals(event.getType()) &&
                     lifecycle instanceof Server) {
-                // Server is shutting down, so thread pools will be shut down so
-                // there is no need to clean the threads
+                // 服务器正在关闭，因此线程池将被关闭，因此不需要清理线程
                 serverStopping = true;
             }
 
+            //如果事件类型为after_stop,并且生命周期的类型属于Context
             if (Lifecycle.AFTER_STOP_EVENT.equals(event.getType()) &&
                     lifecycle instanceof Context) {
                 stopIdleThreads((Context) lifecycle);

@@ -117,14 +117,29 @@ public abstract class LifecycleBase implements Lifecycle {
      * @param type  Event type
      * @param data  Data associated with event.
      */
+
+    /**
+     * 该方法在每次应用状态的改变时都会被调用,进行生命周期的回调
+     * 每次调用该fireLifecycleEvent方法的对象都是不同的,因此对应的lifecycleListeners也是不同的
+     * 在一开始调用的时候(应该StandardServer),有6个lifecycleListeners,会进行6次不同的回调
+     *      1.NamingContextListener:只关心configure_start事件和configure_stop事件
+     *      2.VersionLoggerListener:只关心before_init事件
+     *      3.AprLifecycleListener:只关心before_init事件和after_destroy事件
+     *      4.JreMemoryLeakPreventionListener:只关心before_init事件
+     *      5.GlobalResourcesLifecycleListener:只关心start事件和stop事件
+     *      6.ThreadLocalLeakPreventionListener:只关心before_stop事件和after_stop事件
+     * 在第二个类调用时(应该是ContainerBase),有1个lifecycleListeners
+     *      1.HostConfig:部署对应的应用程序(目录或war包)
+     */
     protected void fireLifecycleEvent(String type, Object data) {
         LifecycleEvent event = new LifecycleEvent(this, type, data);
+
         for (LifecycleListener listener : lifecycleListeners) {
             listener.lifecycleEvent(event);
         }
     }
 
-
+    //调用生命周期的init()初始化方法
     @Override
     public final synchronized void init() throws LifecycleException {
         if (!state.equals(LifecycleState.NEW)) {
@@ -132,9 +147,12 @@ public abstract class LifecycleBase implements Lifecycle {
         }
 
         try {
-            setStateInternal(LifecycleState.INITIALIZING, null, false);//设置内部状态为:正在初始化
+            //设置内部状态为:正在初始化
+            setStateInternal(LifecycleState.INITIALIZING, null, false);
+            //执行对应的组件的初始化方法
             initInternal();
-            setStateInternal(LifecycleState.INITIALIZED, null, false);//设置内部状态为:初始化完成
+            //设置内部状态为:初始化完成
+            setStateInternal(LifecycleState.INITIALIZED, null, false);
         } catch (Throwable t) {
             handleSubClassException(t, "lifecycleBase.initFail", toString());
         }
@@ -149,13 +167,25 @@ public abstract class LifecycleBase implements Lifecycle {
      */
     protected abstract void initInternal() throws LifecycleException;
 
-
     /**
      * {@inheritDoc}
+     * 重要:=====(所有的实现了Lifecycle接口的组件都会调用该start方法,那么所有的组件都会有序的调用完以下的生命周期事件的回调)=====
+     * 调用生命周期的start()方法,会先后调用以下事件回调:
+     * 1. BEFORE_START_EVENT:在方法的开始,调用before_start生命周期回调,此时状态转换为LifecycleState.STARTING_PREP。
+     * 2. START_EVENT:
+     *      - 先调用configure_start回调
+     *      - 再调用start回调,此时状态转换为LifecycleState.STARTING
+     * 3. AFTER_START_EVENT:在方法结束时，在它返回之前,调用after_start生命周期回调,此时状态转换为LifecycleState.STARTED
+     *
+     * 所有事件回调顺序:
+     * 1. before_start
+     * 2. configure_start
+     * 3. start
+     * 4. after_start
      */
     @Override
     public final synchronized void start() throws LifecycleException {
-
+        //应用的启动状态的校验
         if (LifecycleState.STARTING_PREP.equals(state) || LifecycleState.STARTING.equals(state) ||
                 LifecycleState.STARTED.equals(state)) {
 
@@ -168,33 +198,37 @@ public abstract class LifecycleBase implements Lifecycle {
 
             return;
         }
-
+        //如果是new状态,则调用init()
         if (state.equals(LifecycleState.NEW)) {
-            init();
-        } else if (state.equals(LifecycleState.FAILED)) {
+                init();
+        }
+        //如果是failed状态,则调用stop()
+        else if (state.equals(LifecycleState.FAILED)) {
             stop();
-        } else if (!state.equals(LifecycleState.INITIALIZED) &&
+        }
+        //如果都不是,那么就抛出异常
+        else if (!state.equals(LifecycleState.INITIALIZED) &&
                 !state.equals(LifecycleState.STOPPED)) {
             invalidTransition(Lifecycle.BEFORE_START_EVENT);
         }
 
         try {
+            //设置状态为starting_prep(应用启动前),并进行before_start事件的回调
             setStateInternal(LifecycleState.STARTING_PREP, null, false);
+            //回调生命周期的configure_start事件,回调start事件(嵌套调用实现LifecycleBase接口的startInternal方法)
             startInternal();
             if (state.equals(LifecycleState.FAILED)) {
-                // This is a 'controlled' failure. The component put itself into the
-                // FAILED state so call stop() to complete the clean-up.
+                //如果状态是failed,则stop应用
                 stop();
             } else if (!state.equals(LifecycleState.STARTING)) {
-                // Shouldn't be necessary but acts as a check that sub-classes are
-                // doing what they are supposed to.
+                // 如果状态不是starting,则抛出异常
                 invalidTransition(Lifecycle.AFTER_START_EVENT);
             } else {
+                //如果正常运行,则调用生命周期的after_start回调
                 setStateInternal(LifecycleState.STARTED, null, false);
             }
         } catch (Throwable t) {
-            // This is an 'uncontrolled' failure so put the component into the
-            // FAILED state and throw an exception.
+            //这是一个“未控制的”失败，因此将组件放入失败状态并抛出异常。
             handleSubClassException(t, "lifecycleBase.startFail", toString());
         }
     }
@@ -382,14 +416,14 @@ public abstract class LifecycleBase implements Lifecycle {
         setStateInternal(state, data, true);
     }
 
-
+    //设置应用启动时的内部状态,设置完成后,会进行对应生命周期的事件回调==========重要
     private synchronized void setStateInternal(LifecycleState state, Object data, boolean check)
             throws LifecycleException {
 
         if (log.isDebugEnabled()) {
             log.debug(sm.getString("lifecycleBase.setState", this, state));
         }
-
+        //是否进行校验
         if (check) {
             // Must have been triggered by one of the abstract methods (assume
             // code in this class is correct)
@@ -417,8 +451,11 @@ public abstract class LifecycleBase implements Lifecycle {
             }
         }
 
+        //保存当前应用启动时的状态标志
         this.state = state;
+        //获取当前事件的生命周期
         String lifecycleEvent = state.getLifecycleEvent();
+        //根据参数传入的state状态来回调对应生命周期的事件回调
         if (lifecycleEvent != null) {
             fireLifecycleEvent(lifecycleEvent, data);
         }

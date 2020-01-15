@@ -407,30 +407,31 @@ public class StandardService extends LifecycleMBeanBase implements Service {
      *
      * @exception LifecycleException if this component detects a fatal error
      *  that prevents this component from being used
-     */
+     *///StandardService的startInternal方法
     @Override
     protected void startInternal() throws LifecycleException {
-
+        //日志打印
         if(log.isInfoEnabled())
             log.info(sm.getString("standardService.start.name", this.name));
         setState(LifecycleState.STARTING);
 
-        // Start our defined Container first
+        //=============启动我们定义的Container===============
+        //调用engine的start方法
         if (engine != null) {
             synchronized (engine) {
                 engine.start();
             }
         }
-
+        //循环调用executor的start方法
         synchronized (executors) {
             for (Executor executor: executors) {
                 executor.start();
             }
         }
-
+        //调用mapperListener的start方法
         mapperListener.start();
 
-        // Start our defined Connectors second
+        //==========其次,调用所有connector的start方法============
         synchronized (connectorsLock) {
             for (Connector connector: connectors) {
                 // If it has already failed, don't try and start it
@@ -506,7 +507,7 @@ public class StandardService extends LifecycleMBeanBase implements Service {
     /**
      * Invoke a pre-startup initialization. This is used to allow connectors
      * to bind to restricted ports under Unix operating environments.
-     */
+     *///调用启动前的初始化。这用于允许连接器绑定到Unix操作环境下受限制的端口。
     @Override
     protected void initInternal() throws LifecycleException {
         //调用父类的初始化
@@ -529,7 +530,8 @@ public class StandardService extends LifecycleMBeanBase implements Service {
 
         //初始化我们自己定义的Connectors
         synchronized (connectorsLock) {
-            for (Connector connector : connectors) {//这里有两个connector:Connector[HTTP/1.1-8080],Connector[AJP/1.3-8009]
+            //这里有两个connector:Connector[HTTP/1.1-8080],Connector[AJP/1.3-8009]
+            for (Connector connector : connectors) {
                 connector.init();
             }
         }

@@ -860,7 +860,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
     @Override
     protected void initInternal() throws LifecycleException {
-        reconfigureStartStopExecutor(getStartStopThreads());
+        reconfigureStartStopExecutor(getStartStopThreads());//重新配置开始和停止的线程数
         super.initInternal();
     }
 
@@ -887,10 +887,12 @@ public abstract class ContainerBase extends LifecycleMBeanBase
      * @exception LifecycleException if this component detects a fatal error
      *  that prevents this component from being used
      */
+    //启动这个组件并实现org.apache.catalina.util.LifecycleBase.startInternal()的需求。
+    //之后在部署每个app或war包时都会调用该方法,进行项目的部署
     @Override
     protected synchronized void startInternal() throws LifecycleException {
 
-        // Start our subordinate components, if any
+        //启动我们的下级组件，如果有的话
         logger = null;
         getLogger();
         Cluster cluster = getClusterInternal();
@@ -902,17 +904,20 @@ public abstract class ContainerBase extends LifecycleMBeanBase
             ((Lifecycle) realm).start();
         }
 
-        // Start our child containers, if any
+        // 启动我们的子容器，如果有的话
         Container children[] = findChildren();
         List<Future<Void>> results = new ArrayList<>();
+        //遍历所有的子容器,通过线程的方式,异步的启动所有的子容器,启动的生命周期和之前的容器都是一样的,然后将启动后的结果保存到results中
+        //在这个之后,所有的应用都将会部署完成
         for (int i = 0; i < children.length; i++) {
             results.add(startStopExecutor.submit(new StartChild(children[i])));
         }
 
         MultiThrowable multiThrowable = null;
-
+        //先尝试从results中获取
         for (Future<Void> result : results) {
             try {
+                //拿到线程执行完成后的结果
                 result.get();
             } catch (Throwable e) {
                 log.error(sm.getString("containerBase.threadedStartFailed"), e);
@@ -928,14 +933,14 @@ public abstract class ContainerBase extends LifecycleMBeanBase
                     multiThrowable.getThrowable());
         }
 
-        // Start the Valves in our pipeline (including the basic), if any
+        // 调用pipeline的start方法,进行生命周期的回调
         if (pipeline instanceof Lifecycle) {
             ((Lifecycle) pipeline).start();
         }
-
+        //通过设置生命周期的状态为starting后,那么就会调用start事件回调,然后开启线程进行异步的部署所有的项目和war包(如果没有,则不部署)
         setState(LifecycleState.STARTING);
 
-        // Start our thread
+        // 开始我们的线程
         if (backgroundProcessorDelay > 0) {
             monitorFuture = Container.getService(ContainerBase.this).getServer()
                     .getUtilityExecutor().scheduleWithFixedDelay(

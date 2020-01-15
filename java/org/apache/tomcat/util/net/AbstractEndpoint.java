@@ -1155,7 +1155,7 @@ public abstract class AbstractEndpoint<S,U> {
             bindState = BindState.BOUND_ON_INIT;
         }
         if (this.domain != null) {
-            // Register endpoint (as ThreadPool - historical name)
+            //注册端点(as ThreadPool - historical name)
             oname = new ObjectName(domain + ":type=ThreadPool,name=\"" + getName() + "\"");
             Registry.getRegistry(null, null).registerComponent(this, oname, null);
 

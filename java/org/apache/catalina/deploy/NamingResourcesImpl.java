@@ -993,7 +993,9 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
 
     @Override
     protected void startInternal() throws LifecycleException {
+        //回调生命周期的Configure_start事件
         fireLifecycleEvent(CONFIGURE_START_EVENT, null);
+        //将生命周期的状态设置为starting,并回调生命周期的start事件
         setState(LifecycleState.STARTING);
     }
 

@@ -87,7 +87,7 @@ public class LockOutRealm extends CombinedRealm {
      *
      * @exception LifecycleException if this component detects a fatal error
      *  that prevents this component from being used
-     */
+     *///准备开始积极使用该组件的公共方法，并实现org.apache.catalina.util.LifecycleBase.startInternal()的要求。
     @Override
     protected synchronized void startInternal() throws LifecycleException {
         // Configure the list of failed users to delete the oldest entry once it

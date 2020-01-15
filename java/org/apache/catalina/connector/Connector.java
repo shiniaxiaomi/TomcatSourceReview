@@ -938,7 +938,8 @@ public class Connector extends LifecycleMBeanBase  {
     @Override
     protected void initInternal() throws LifecycleException {
 
-        super.initInternal();//调用父类的初始化方法
+        //调用父类的初始化方法
+        super.initInternal();
 
         if (protocolHandler == null) {
             throw new LifecycleException(
@@ -952,9 +953,10 @@ public class Connector extends LifecycleMBeanBase  {
             protocolHandler.setUtilityExecutor(service.getServer().getUtilityExecutor());
         }
 
-        // Make sure parseBodyMethodsSet has a default//确保parseBodyMethodsSet有一个默认值
+        //确保parseBodyMethodsSet有一个默认值
         if (null == parseBodyMethodsSet) {
-            setParseBodyMethods(getParseBodyMethods());//设置允许体参数解析的HTTP方法列表。默认设置为POST。
+            //设置允许体参数解析的HTTP方法列表。默认设置为POST。
+            setParseBodyMethods(getParseBodyMethods());
         }
 
         if (protocolHandler.isAprRequired() && !AprLifecycleListener.isInstanceCreated()) {

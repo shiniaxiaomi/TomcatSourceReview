@@ -211,24 +211,24 @@ public class NamingContextListener
      * Acknowledge the occurrence of the specified event.
      *
      * @param event LifecycleEvent that has occurred
-     */
+     *///确认指定事件的发生。
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
-
+        //通过事件获取对应的容器类型
         container = event.getLifecycle();
-
+        //如果容器属于Context
         if (container instanceof Context) {
             namingResources = ((Context) container).getNamingResources();
             token = ((Context) container).getNamingToken();
-        } else if (container instanceof Server) {
+        } else if (container instanceof Server) {//如果容器属于Server
             namingResources = ((Server) container).getGlobalNamingResources();
             token = ((Server) container).getNamingToken();
-        } else {
+        } else {//如果都不是,则直接返回
             return;
         }
-
+        //=================如果事件的类型为configure_start=================
         if (Lifecycle.CONFIGURE_START_EVENT.equals(event.getType())) {
-
+            //如果已经初始化,则返回
             if (initialized)
                 return;
 
@@ -290,8 +290,10 @@ public class NamingContextListener
                 initialized = true;
             }
 
-        } else if (Lifecycle.CONFIGURE_STOP_EVENT.equals(event.getType())) {
-
+        }
+        //=================如果事件的类型为configure_stop=================
+        else if (Lifecycle.CONFIGURE_STOP_EVENT.equals(event.getType())) {
+            //如果未初始化,则返回
             if (!initialized)
                 return;
 

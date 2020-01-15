@@ -204,10 +204,10 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
     }
 
 
-
+    // 在Tomcat启动时初始化这些类
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
-        // Initialise these classes when Tomcat starts
+        //如果事件类型为before_init
         if (Lifecycle.BEFORE_INIT_EVENT.equals(event.getType())) {
 
             /*
@@ -221,6 +221,10 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
              *       class loader should add the JDBC driver(s) to the class
              *       path so they are loaded by the system class loader.
              */
+            // 第一个调用它加载当前类装入器及其父类可见的所有驱动程序
+            // 注意: 这是在上下文类装入器改变之前调用的，
+            // 因为我们希望位于CATALINA_HOME/lib和/或CATALINA_HOME/lib中的任何驱动程序对DriverManager可见。
+            // 希望避免这个类装入器装入JDBC驱动程序的用户应该将JDBC驱动程序添加到类路径中，以便由系统类装入器装入它们。
             if (driverManagerProtection) {
                 DriverManager.getDrivers();
             }

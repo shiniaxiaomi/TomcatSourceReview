@@ -120,10 +120,10 @@ public class AprLifecycleListener
      * Primary entry point for startup and shutdown events.
      *
      * @param event The event that has occurred
-     */
+     *///启动和关闭事件的主要入口点。
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
-
+        //如果事件类型为before_init
         if (Lifecycle.BEFORE_INIT_EVENT.equals(event.getType())) {
             synchronized (lock) {
                 init();
@@ -149,7 +149,9 @@ public class AprLifecycleListener
                     throw e;
                 }
             }
-        } else if (Lifecycle.AFTER_DESTROY_EVENT.equals(event.getType())) {
+        }
+        //如果事件类型为after_destroy
+        else if (Lifecycle.AFTER_DESTROY_EVENT.equals(event.getType())) {
             synchronized (lock) {
                 if (!aprAvailable) {
                     return;

@@ -237,7 +237,7 @@ public class StandardEngine extends ContainerBase implements Engine {
     @Override
     protected void initInternal() throws LifecycleException {
         // Ensure that a Realm is present before any attempt is made to start
-        // one. This will create the default NullRealm if necessary.
+        // one. This will create the default NullRealm if necessary.//确保在启动一个域之前，该域已经存在。这将在必要时创建默认的NullRealm。
         getRealm();
         super.initInternal();
     }
@@ -249,16 +249,16 @@ public class StandardEngine extends ContainerBase implements Engine {
      *
      * @exception LifecycleException if this component detects a fatal error
      *  that prevents this component from being used
-     */
+     *///启动这个组件并实现org.apache.catalina.util.LifecycleBase.startInternal()的需求。
     @Override
     protected synchronized void startInternal() throws LifecycleException {
 
-        // Log our server identification information
+        //打印日志
         if (log.isInfoEnabled()) {
             log.info(sm.getString("standardEngine.start", ServerInfo.getServerInfo()));
         }
 
-        // Standard container startup
+        //标准容器启动
         super.startInternal();
     }
 

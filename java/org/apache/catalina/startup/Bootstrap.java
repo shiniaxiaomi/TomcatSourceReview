@@ -255,45 +255,55 @@ public final class Bootstrap {
 
 
     /**
-     * Initialize daemon.
+     * 初始化守护线程
      * @throws Exception Fatal initialization error
      */
     public void init() throws Exception {
 
-        initClassLoaders();//初始化所有的ClassLoader
+        //初始化所有的ClassLoader
+        initClassLoaders();
 
-        Thread.currentThread().setContextClassLoader(catalinaLoader);//设置当前线程的ClassLoader为catalinaLoader
+        //设置当前线程的ClassLoader为catalinaLoader
+        Thread.currentThread().setContextClassLoader(catalinaLoader);
 
+        //设置安全的ClassLoader为catalinaLoader
         SecurityClassLoad.securityClassLoad(catalinaLoader);
 
         // 加载Catalina启动类,并且调用其process()方法
         if (log.isDebugEnabled())
             log.debug("Loading startup class");
-        Class<?> startupClass = catalinaLoader.loadClass("org.apache.catalina.startup.Catalina");// 加载Catalina类
-        Object startupInstance = startupClass.getConstructor().newInstance();// 创建Catalina实例
+        // 加载Catalina类
+        Class<?> startupClass = catalinaLoader.loadClass("org.apache.catalina.startup.Catalina");
+        // 创建Catalina实例
+        Object startupInstance = startupClass.getConstructor().newInstance();
 
-        // Set the shared extensions class loader
+        //设置shared ClassLoader,调用Catalina类中的setParentClassLoader()方法
         if (log.isDebugEnabled())
             log.debug("Setting startup class properties");
         String methodName = "setParentClassLoader";
         Class<?> paramTypes[] = new Class[1];
-        paramTypes[0] = Class.forName("java.lang.ClassLoader");//获取ClassLoader的类型
+        //获取ClassLoader的类型
+        paramTypes[0] = Class.forName("java.lang.ClassLoader");
         Object paramValues[] = new Object[1];
-        paramValues[0] = sharedLoader;//将sharedLoader作为调用方法的参数
+        //将sharedLoader作为调用方法的参数
+        paramValues[0] = sharedLoader;
+        // 通过methodName变量指定的方法和参数类型来获取Catalina类中方法(即setParentClassLoader方法)
         Method method =
-            startupInstance.getClass().getMethod(methodName, paramTypes);// 通过methodName变量指定的方法和参数类型来获取Catalina类中方法(即setParentClassLoader方法)
-        method.invoke(startupInstance, paramValues);// 通过反射调用指定的方法,并传入指定参数
+            startupInstance.getClass().getMethod(methodName, paramTypes);
+        // 通过反射调用指定的方法,并传入指定参数
+        method.invoke(startupInstance, paramValues);
 
-        catalinaDaemon = startupInstance;// 将Catalina实例保存到catalinaDaemon变量中
+        // 将Catalina实例保存到catalinaDaemon变量中
+        catalinaDaemon = startupInstance;
     }
 
 
     /**
-     * Load daemon.
+     * 加载守护线程:在load()方法中,解析server.xml文件
      */
     private void load(String[] arguments) throws Exception {
 
-        // Call the load() method
+        //通过反射调用匹配的load()方法
         String methodName = "load";
         Object param[];
         Class<?> paramTypes[];
@@ -342,14 +352,16 @@ public final class Bootstrap {
 
 
     /**
-     * Start the Catalina daemon.
+     * 启动Catalina线程
      * @throws Exception Fatal start error
      */
     public void start() throws Exception {
+        //如果没有初始化,则进行初始化守护线程
         if (catalinaDaemon == null) {
             init();
         }
 
+        //通过反射调用Catalina的start()方法
         Method method = catalinaDaemon.getClass().getMethod("start", (Class [])null);
         method.invoke(catalinaDaemon, (Object [])null);
     }
@@ -447,51 +459,74 @@ public final class Bootstrap {
     public static void main(String args[]) {
 
         synchronized (daemonLock) {
-            if (daemon == null) {//如果daemon为null,则创建Bootstrap对象
-                //在init()完成之前不要设置守护进程
-                Bootstrap bootstrap = new Bootstrap();//创建Bootstrap对象
+            //如果daemon为null,则创建Bootstrap对象
+            if (daemon == null) {
+                //=========在init()完成之前不要设置守护进程========
+                //创建Bootstrap对象
+                Bootstrap bootstrap = new Bootstrap();
                 try {
-                    bootstrap.init();//调用其init方法,初始化程序
+                    //调用其init方法,初始化类加载器,实例化Catalina
+                    bootstrap.init();
                 } catch (Throwable t) {
                     handleThrowable(t);
                     t.printStackTrace();
                     return;
                 }
-                daemon = bootstrap;//保存bootstrap对象引用
+                //保存bootstrap对象引用
+                daemon = bootstrap;
             } else {
-                // When running as a service the call to stop will be on a new
-                // thread so make sure the correct class loader is used to
-                // prevent a range of class not found exceptions.//如果daemon不为null,则将当前线程的ClassLoader设置为catalinaLoader
+                //如果daemon不为null,则将当前线程的ClassLoader设置为catalinaLoader
                 Thread.currentThread().setContextClassLoader(daemon.catalinaLoader);
             }
         }
 
         try {
-            String command = "start";//默认的命令设置为start(所以,在启动项中不添加start参数也是可以正常启动的)
+            //默认的命令设置为start(所以,在启动项中不添加start参数也是可以正常启动的)
+            String command = "start";
             if (args.length > 0) {
                 command = args[args.length - 1];
             }
             //如果命令为startd
             if (command.equals("startd")) {
-                args[args.length - 1] = "start";//则将参数设置为start
-                daemon.load(args);//通过args的不同调用不同的load()方法
-                daemon.start();//调用start()方法
-            } else if (command.equals("stopd")) {//如果命令为stopd
-                args[args.length - 1] = "stop";//则将参数设置为stop
-                daemon.stop();//调用stop()方法
-            } else if (command.equals("start")) {//如果命令是start方法
-                daemon.setAwait(true);//将当前线程设置为阻塞
-                daemon.load(args);//通过args的不同调用不同的load()方法
-                daemon.start();//调用start()方法
+                //则将参数设置为start
+                args[args.length - 1] = "start";
+                //通过args的不同调用不同的load()方法
+                daemon.load(args);
+                //调用start()方法
+                daemon.start();
+            }
+            //如果命令为stopd
+            else if (command.equals("stopd")) {
+                //则将参数设置为stop
+                args[args.length - 1] = "stop";
+                //调用stop()方法
+                daemon.stop();
+            }
+            //如果命令是start方法====================================默认执行start
+            else if (command.equals("start")) {
+                //将当前线程设置为阻塞
+                daemon.setAwait(true);
+                //通过args的不同调用不同的load()方法=====load()方法中执行了很多内容,如将server.xml进行解析,然后初始化所有的组件,进行部分的生命周期的事件回调等
+                daemon.load(args);
+                //调用Catalina类中的start()方法
+                daemon.start();
                 if (null == daemon.getServer()) {
-                    System.exit(1);//如果获取不到Server,则退出应用
+                    //如果获取不到Server,则退出应用
+                    System.exit(1);
                 }
-            } else if (command.equals("stop")) {//如果命令为stop
-                daemon.stopServer(args);//通过args的不同调用匹配的stopServer方法
-            } else if (command.equals("configtest")) {//如果命令为configtest
-                daemon.load(args);//通过args的不同调用不同的load()方法
+            }
+            //如果命令为stop
+            else if (command.equals("stop")) {
+                //通过args的不同调用匹配的stopServer方法
+                daemon.stopServer(args);
+            }
+            //如果命令为configtest
+            else if (command.equals("configtest")) {
+                //通过args的不同调用不同的load()方法
+                daemon.load(args);
                 if (null == daemon.getServer()) {
-                    System.exit(1);//如果获取不到Server,则退出应用
+                    //如果获取不到Server,则退出应用
+                    System.exit(1);
                 }
                 System.exit(0);
             } else {

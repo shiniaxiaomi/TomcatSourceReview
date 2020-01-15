@@ -79,6 +79,7 @@ public class VersionLoggerListener implements LifecycleListener {
 
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
+        //如果事件类型为before_init,则打印一些日志
         if (Lifecycle.BEFORE_INIT_EVENT.equals(event.getType())) {
             log();
         }

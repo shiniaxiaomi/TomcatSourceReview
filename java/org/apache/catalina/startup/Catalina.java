@@ -535,25 +535,29 @@ public class Catalina {
 
 
     /**
-     * Start a new server instance.启动一个新的服务器实例
+     * 启动一个新的服务器实例
      */
     public void load() {
         //如果已经启动,则返回
         if (loaded) {
             return;
         }
-        loaded = true;//标记已启动
+        //标记已启动
+        loaded = true;
 
-        long t1 = System.nanoTime();//记录刚启动时的事件
+        //记录加载前的时间
+        long t1 = System.nanoTime();
 
-        initDirs();//初始化临时目录
+        //初始化临时目录
+        initDirs();
 
         // Before digester - it may be needed
         initNaming();
 
         //设置配置源(创建CatalinaBaseConfigurationSource对象,并传入base文件夹的子文件和conf/server.xml文件)
         ConfigFileLoader.setSource(new CatalinaBaseConfigurationSource(Bootstrap.getCatalinaBaseFile(), getConfigFile()));
-        File file = configFile();//解析出conf/server.xml配置文件的绝对路径
+        //解析出conf/server.xml配置文件的绝对路径
+        File file = configFile();
 
         // 创建xml的解析器
         Digester digester = createStartDigester();
@@ -563,7 +567,8 @@ public class Catalina {
             InputSource inputSource = new InputSource(resource.getURI().toURL().toString());
             inputSource.setByteStream(inputStream);
             digester.push(this);
-            digester.parse(inputSource);//将conf/server.xml配置文件进行解析
+            //将conf/server.xml配置文件进行解析
+            digester.parse(inputSource);
         } catch (Exception e) {
             log.warn(sm.getString("catalina.configFail", file.getAbsolutePath()), e);
             if (file.exists() && !file.canRead()) {
@@ -581,7 +586,8 @@ public class Catalina {
 
         //启动新服务器
         try {
-            getServer().init();//调用Server的init()方法
+            //调用StandardServer的init()方法,从而链式的调用所有组件的init方法,从而初始化好所有组件
+            getServer().init();
         } catch (LifecycleException e) {
             if (Boolean.getBoolean("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE")) {
                 throw new java.lang.Error(e);
@@ -589,7 +595,7 @@ public class Catalina {
                 log.error(sm.getString("catalina.initError"), e);
             }
         }
-
+        //记录加载结束后的时间
         long t2 = System.nanoTime();
         if(log.isInfoEnabled()) {
             log.info(sm.getString("catalina.init", Long.valueOf((t2 - t1) / 1000000)));
@@ -598,13 +604,13 @@ public class Catalina {
 
 
     /*
-     * Load using arguments
+     * 使用参数进行加载
      */
     public void load(String args[]) {
 
         try {
             if (arguments(args)) {
-                load();
+                load();//解析server.xml,并初始化好所有的组件
             }
         } catch (Exception e) {
             e.printStackTrace(System.out);
@@ -613,49 +619,57 @@ public class Catalina {
 
 
     /**
-     * Start a new server instance.
+     * 启动一个新的服务器实例
      */
     public void start() {
 
+        //如果Server为null,则进行加载(解析server.xml,并初始化各个容器)
         if (getServer() == null) {
             load();
         }
 
+        //如果load()之后还是null,则返回该方法,停止应用
         if (getServer() == null) {
             log.fatal(sm.getString("catalina.noServer"));
             return;
         }
 
+        //记录启动应用的开始时间
         long t1 = System.nanoTime();
 
-        // Start the new server
+        //==============启动新服务器===============
         try {
+            /**
+             * 通过调用StandardServer的start方法,然后就会嵌套的调用其组件的所有start方法,从完成所有组件的有序的生命周期事件回调
+             */
             getServer().start();
         } catch (LifecycleException e) {
             log.fatal(sm.getString("catalina.serverStartFail"), e);
             try {
-                getServer().destroy();
+                getServer().destroy();//如果报错,则调用destroy()方法进行销毁
             } catch (LifecycleException e1) {
                 log.debug("destroy() failed for failed Server ", e1);
             }
             return;
         }
-
+        //记录应用启动的结束时间
         long t2 = System.nanoTime();
         if(log.isInfoEnabled()) {
             log.info(sm.getString("catalina.startup", Long.valueOf((t2 - t1) / 1000000)));
         }
 
-        // Register shutdown hook
+        //注册应用关闭的回调
         if (useShutdownHook) {
             if (shutdownHook == null) {
+                //创建Catalina关闭时的回调
                 shutdownHook = new CatalinaShutdownHook();
             }
+            //将关闭回调注册一下
             Runtime.getRuntime().addShutdownHook(shutdownHook);
 
-            // If JULI is being used, disable JULI's shutdown hook since
-            // shutdown hooks run in parallel and log messages may be lost
-            // if JULI's hook completes before the CatalinaShutdownHook()
+            // 如果使用JULI，禁用JULI的关闭钩子，因为关闭钩子是并行运行的，
+            // 如果JULI的钩子在CatalinaShutdownHook()之前完成，
+            // 日志消息可能会丢失。
             LogManager logManager = LogManager.getLogManager();
             if (logManager instanceof ClassLoaderLogManager) {
                 ((ClassLoaderLogManager) logManager).setUseShutdownHook(

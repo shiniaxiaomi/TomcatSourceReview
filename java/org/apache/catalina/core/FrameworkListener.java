@@ -50,7 +50,8 @@ public abstract class FrameworkListener implements LifecycleListener, ContainerL
 
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
-        Lifecycle lifecycle = event.getLifecycle();
+        Lifecycle lifecycle = event.getLifecycle();//获取事件对应的生命周期
+        //如果事件类型为before_start,并且生命周期的类型属于Server
         if (Lifecycle.BEFORE_START_EVENT.equals(event.getType()) &&
                 lifecycle instanceof Server) {
             Server server = (Server) lifecycle;

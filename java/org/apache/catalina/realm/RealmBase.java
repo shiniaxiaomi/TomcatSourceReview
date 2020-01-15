@@ -1108,7 +1108,7 @@ public abstract class RealmBase extends LifecycleMBeanBase implements Realm {
         if (credentialHandler == null) {
             credentialHandler = new MessageDigestCredentialHandler();
         }
-
+        //生命周期的start事件回调
         setState(LifecycleState.STARTING);
     }
 

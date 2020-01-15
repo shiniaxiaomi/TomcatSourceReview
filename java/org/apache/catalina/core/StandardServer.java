@@ -915,23 +915,29 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
      *
      * @exception LifecycleException if this component detects a fatal error
      *  that prevents this component from being used
-     */
+     *///启动嵌套组件(服务)并实现org.apache.catalina.util.LifecycleBase.startInternal()的需求。
+    //每个组件都会调用该startInternal方法,该方法会:回调生命周期的Configure_start事件,回调生命周期的start事件,调用NamingResourcesImpl的start方法,调用所有的service的start方法
     @Override
     protected void startInternal() throws LifecycleException {
-
+        //回调生命周期的configure_start事件
         fireLifecycleEvent(CONFIGURE_START_EVENT, null);
+        //设置当前的状态为starting,并回调生命周期的start事件
         setState(LifecycleState.STARTING);
 
+        //调用NamingResourcesImpl(LifecycleBase)的start()方法
         globalNamingResources.start();
 
-        // Start our defined Services
+        //循环调用所有的service的start()方法,如StandardService
+        //在这里就会部署好每个对应的Service里的所有的应用
         synchronized (servicesLock) {
             for (int i = 0; i < services.length; i++) {
                 services[i].start();
             }
         }
 
+        //如果生命周期的间隔定义大于0
         if (periodicEventDelay > 0) {
+            //创建线程,并每隔60s执行startPeriodicLifecycleEvent()方法
             monitorFuture = getUtilityExecutor().scheduleWithFixedDelay(
                     new Runnable() {
                         @Override
@@ -1000,32 +1006,30 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
     /**
      * Invoke a pre-startup initialization. This is used to allow connectors
      * to bind to restricted ports under Unix operating environments.
-     */
+     *///调用启动前的初始化。这用于允许连接器绑定到Unix操作环境下受限制的端口。
     @Override
     protected void initInternal() throws LifecycleException {
 
-        super.initInternal();//调用父类的初始化方法
+        //调用父类的初始化方法
+        super.initInternal();
 
-        // Initialize utility executor
+        // 初始化通用的executor
         reconfigureUtilityExecutor(getUtilityThreadsInternal(utilityThreads));
         register(utilityExecutor, "type=UtilityExecutor");
 
-        // Register global String cache
-        // Note although the cache is global, if there are multiple Servers
-        // present in the JVM (may happen when embedding) then the same cache
-        // will be registered under multiple names寄存器全局字符串缓存.注意，尽管缓存是全局的，但是如果有多个服务器的话.出现在JVM中(可能在嵌入时发生)，然后是相同的缓存.将以多个名字注册
+        // 寄存器全局字符串缓存.注意，尽管缓存是全局的，但是如果有多个服务器的话.出现在JVM中(可能在嵌入时发生)，然后是相同的缓存.将以多个名字注册
         onameStringCache = register(new StringCache(), "type=StringCache");
 
-        // Register the MBeanFactory//注册MBeanFactory
+        //注册MBeanFactory
         MBeanFactory factory = new MBeanFactory();
-        factory.setContainer(this);//将当前对象(StandardServer)设置为Container
+        //将当前对象(StandardServer)设置为Container
+        factory.setContainer(this);
         onameMBeanFactory = register(factory, "type=MBeanFactory");
 
-        // Register the naming resources//初始化并注册命名资源
+        //初始化并注册命名资源
         globalNamingResources.init();
 
-        // Populate the extension validator with JARs from common and shared
-        // class loaders//用来自公共和共享类加载器的jar填充扩展验证器
+        //用来自公共和共享类加载器的jar填充扩展验证器
         if (getCatalina() != null) {
             ClassLoader cl = getCatalina().getParentClassLoader();
             // Walk the class loader hierarchy. Stop at the system class loader.
@@ -1052,9 +1056,9 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
                 cl = cl.getParent();
             }
         }
-        // Initialize our defined Services//初始化我们定义的服务(循环调用所有定义的service的init()方法)
+        //循环调用所有定义的service的init()方法,默认的只有StandardService
         for (int i = 0; i < services.length; i++) {
-            services[i].init();
+            services[i].init();//在调用service的初始化时,会链式的调用属于该service的所有组件的初始化方法
         }
     }
 

@@ -66,7 +66,7 @@ public abstract class AbstractHttp11Protocol<S> extends AbstractProtocol<S> {
     public void init() throws Exception {
         // Upgrade protocols have to be configured first since the endpoint
         // init (triggered via super.init() below) uses this list to configure
-        // the list of ALPN protocols to advertise
+        // the list of ALPN protocols to advertise//必须首先配置升级协议，因为端点init(通过下面的super.init()触发)使用此列表来配置要发布的ALPN协议列表
         for (UpgradeProtocol upgradeProtocol : upgradeProtocols) {
             configureUpgradeProtocol(upgradeProtocol);
         }

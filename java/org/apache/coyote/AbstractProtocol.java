@@ -561,7 +561,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
         }
 
         if (oname == null) {
-            // Component not pre-registered so register it
+            //组件没有预先注册，所以注册它
             oname = createObjectName();
             if (oname != null) {
                 Registry.getRegistry(null, null).registerComponent(this, oname, null);
